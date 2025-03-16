@@ -6,16 +6,31 @@ const TELEGRAM_TOKEN = process.env.TELEGRAM_TOKEN;
 const CHAT_ID = process.env.CHAT_ID;
 const URL = "http://localhost:7000/health";
 
+let downtimeStart = null;
+
 async function checkHealth() {
     try {
         const response = await axios.get(URL);
         if (response.status === 200) {
             console.log(`[✅] API Online: ${response.status}`);
+            if (downtimeStart) {
+                const downtimeEnd = new Date();
+                const downtimeDuration = (downtimeEnd - downtimeStart) / 1000; // duração em segundos
+                console.log(`[⏱️] A API ficou fora do ar por ${downtimeDuration} segundos.`);
+                sendAlert(`[✅] A API voltou a funcionar após ${downtimeDuration} segundos de inatividade.`);
+                downtimeStart = null; // resetar o tempo de início da inatividade
+            }
         } else {
             sendAlert(`⚠️ ALERTA: A API retornou status ${response.status}`);
+            if (!downtimeStart) {
+                downtimeStart = new Date();
+            }
         }
     } catch (error) {
         sendAlert(`❌ ALERTA: A API redem back está fora do ar!\nErro: ${error.message}`);
+        if (!downtimeStart) {
+            downtimeStart = new Date();
+        }
     }
 }
 
